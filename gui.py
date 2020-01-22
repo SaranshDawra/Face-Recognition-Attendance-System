@@ -12,6 +12,7 @@ import os
 from PIL import Image
 import numpy as np
 import cv2
+from datetime import date
 import time
 
 recognizer = cv2.face.LBPHFaceRecognizer_create()
@@ -38,6 +39,83 @@ def getImagesAndLabels(path):
             Ids.append(Id)
             
     return faceSamples,Ids
+
+attendance=set()
+def attendanceID(roll):
+    attendance.add(roll)
+
+def recognizeFace():
+    recognizer = cv2.face.LBPHFaceRecognizer_create()
+    recognizer.read('Trainer/trainer.yml')
+    cascadePath = "haarcascade_frontalface_default.xml"
+    faceCascade = cv2.CascadeClassifier(cascadePath);
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    id = 0
+    cam = cv2.VideoCapture(0)
+    minW = 0.1*cam.get(3)
+    minH = 0.1*cam.get(4)
+    while True:
+        ret, img =cam.read()
+        gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    
+        faces = faceCascade.detectMultiScale( 
+            gray,
+            scaleFactor = 1.2,
+            minNeighbors = 5,
+            minSize = (int(minW), int(minH)),
+           )
+        for(x,y,w,h) in faces:
+            cv2.rectangle(img, (x,y), (x+w,y+h), (0,255,0), 2)
+            id, confidence = recognizer.predict(gray[y:y+h,x:x+w]) 
+            if (confidence > 35 ):
+                attendanceID(id)
+                confidence = "  {0}%".format(round(confidence)) 
+            else:
+                id = "unknown"
+                confidence = "  {0}%".format(round(confidence))
+            
+            cv2.putText(img, str(id), (x+5,y-5), font, 1, (255,255,255), 2)
+            cv2.putText(img, str(confidence), (x+5,y+h-5), font, 1, (255,255,0), 1)  
+    
+        cv2.imshow('Attendance',img) 
+        k = cv2.waitKey(10)
+        if k == 27:
+            break
+    
+    today = date.today()
+    d = today.strftime("%d-%b-%Y")
+    filename=""
+    filename+=d+".xlsx"
+    
+    inputWorkbook = xlrd.open_workbook('studentData.xlsx')
+    inputWorksheet = inputWorkbook.sheet_by_index(0)
+    row = inputWorksheet.nrows
+    
+    workbook = xlsxwriter.Workbook(filename)
+    worksheet = workbook.add_worksheet()
+    
+    for i in range(0,row):
+        if i == 0:
+            worksheet.write(0,0,"Name")
+            worksheet.write(0,1,"ID")
+            worksheet.write(0,2,"Attendance")
+        else:
+            cellName = inputWorksheet.cell_value(i,0)
+            cellID = int(inputWorksheet.cell_value(i,1))
+            if cellID in attendance:
+                worksheet.write(i,0,cellName)
+                worksheet.write(i,1,cellID)
+                worksheet.write(i,2,1)
+            else:
+                worksheet.write(i,0,cellName)
+                worksheet.write(i,1,cellID)
+                worksheet.write(i,2,0)
+                
+    workbook.close()
+           
+    print(attendance)
+    cam.release()
+    cv2.destroyAllWindows()
 
 def trainFace():
     faces,Ids = getImagesAndLabels('DataSet')
@@ -115,7 +193,7 @@ dataset_button.pack(padx = 10 , pady = 10)
 update_button = tk.Button(window, text="Train", width=25,font=("times new roman",20),bg="#000000",fg='white',command=trainFace)
 update_button.pack(padx = 10 , pady = 10)
 
-next_button = tk.Button(window, text="Mark Attendance", width=25,font=("times new roman",20),bg="#000000",fg='white')
+next_button = tk.Button(window, text="Mark Attendance", width=25,font=("times new roman",20),bg="#000000",fg='white',command=recognizeFace)
 next_button.pack(padx = 10 , pady = 10)
 
 exit_button = tk.Button(window,text="Exit",width=25,font=("times new roman",20),bg="#000000",fg='white',command=exitFunction)
