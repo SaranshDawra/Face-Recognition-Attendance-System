@@ -7,8 +7,40 @@ Created on Sat Jan  4 21:07:05 2020
 
 import tkinter as tk
 import os
+from PIL import Image
+import numpy as np
 import cv2
 import time
+
+recognizer = cv2.face.LBPHFaceRecognizer_create()
+detector= cv2.CascadeClassifier("haarcascade_frontalface_default.xml");
+
+def getImagesAndLabels(path):
+    faceSamples=[]
+    Ids=[]
+    currentDirectory = "Dataset"
+    for folder in os.listdir(path):
+        finalDirectory = folder
+        print(folder)
+        location = f"{currentDirectory}/{finalDirectory}"
+        print(location)
+        for f in os.listdir(location):
+            print(f)
+            imagePath = location+"/"+f
+            print(imagePath)
+            pilImage=Image.open(imagePath)
+            imageNp=np.array(pilImage,'uint8')
+            faceSamples.append(imageNp)
+            Id=int(f[:f.index("_")])
+            print(Id)
+            Ids.append(Id)
+            
+    return faceSamples,Ids
+
+def trainFace():
+    faces,Ids = getImagesAndLabels('DataSet')
+    recognizer.train(faces, np.array(Ids))
+    recognizer.save('Trainer/trainer.yml')
 
 
 def saveInfo(root,name,ID):
@@ -78,7 +110,7 @@ window.title("Face Recognition Attendance System")
 dataset_button = tk.Button(window,text="Create Dataset",width=25,font=("times new roman",20),bg="#000000",fg='white',command=createData)
 dataset_button.pack(padx = 10 , pady = 10)
 
-update_button = tk.Button(window, text="Train", width=25,font=("times new roman",20),bg="#000000",fg='white')
+update_button = tk.Button(window, text="Train", width=25,font=("times new roman",20),bg="#000000",fg='white',command=trainFace)
 update_button.pack(padx = 10 , pady = 10)
 
 next_button = tk.Button(window, text="Mark Attendance", width=25,font=("times new roman",20),bg="#000000",fg='white')
