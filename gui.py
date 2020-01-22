@@ -5,6 +5,8 @@ Created on Sat Jan  4 21:07:05 2020
 @author: Saransh
 """
 
+import xlsxwriter
+import xlrd
 import tkinter as tk
 import os
 from PIL import Image
